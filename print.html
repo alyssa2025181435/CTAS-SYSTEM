@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CTAS - Print Rooming List</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f5f5f5; margin:0; padding:30px; color:#333; }
+  h1 { text-align:center; color:#d32f2f; margin-bottom:24px; }
+  .container { max-width:1000px; margin:auto; background:#fff; padding:24px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.15); }
+  select, button { padding:9px; border:1px solid #d32f2f; border-radius:6px; font-size:14px; margin-bottom:12px; }
+  button { background:#d32f2f; color:#fff; cursor:pointer; font-weight:bold; }
+  button:hover { background:#b71c1c; }
+  .header-box { margin-top:20px; padding:12px; border:1px solid #ddd; border-radius:8px; }
+  .header-box h3 { margin:0 0 8px 0; color:#d32f2f; }
+  table { width:100%; border-collapse:collapse; margin-top:16px; }
+  th, td { border:1px solid #ddd; padding:10px; text-align:center; font-size:14px; }
+  th { background:#d32f2f; color:#fff; }
+  @media print { select, button { display:none; } body { background:#fff; } .container { box-shadow:none; } }
+</style>
+</head>
+<body>
+
+<h1>CTAS - Print Crew Rooming List</h1>
+
+<div class="container">
+  <label for="flight">Select Country</label>
+  <select id="flight">
+    <option value="">Choose Country</option>
+    <option value="Japan">Japan (D7212)</option>
+    <option value="Thailand">Thailand (AK456)</option>
+    <option value="Indonesia">Indonesia (QZ303)</option>
+    <option value="Singapore">Singapore (SQ100)</option>
+    <option value="Australia">Australia (QF200)</option>
+    <option value="Malaysia">Malaysia (MH300)</option>
+    <option value="South Korea">South Korea (KE400)</option>
+  </select>
+  <button onclick="generateList()">Generate Rooming List</button>
+  <button onclick="window.print()">Print Page</button>
+
+  <div class="header-box" id="summary" style="display:none;">
+    <h3>AirAsia X Berhad — Crew Rooming List</h3>
+    <p id="summaryText"></p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Room Number</th>
+        <th>Crew Name</th>
+        <th>Wake-Up</th>
+        <th>Pick-Up</th>
+      </tr>
+    </thead>
+    <tbody id="crewTable"></tbody>
+  </table>
+</div>
+
+<script>
+  // Flight info (arrival/departure times + hotels)
+  const flightInfo = {
+    "Japan": { flight: "D7212", arrivalDate: "2025-12-12", arrivalTime: "23:45", departureDate: "2025-12-14", departureTime: "01:00", hotel: "Tokyo Marriott" },
+    "Thailand": { flight: "AK456", arrivalDate: "2026-02-13", arrivalTime: "12:00", departureDate: "2026-02-13", departureTime: "09:30", hotel: "Centara Grand Bangkok" },
+    "Indonesia": { flight: "QZ303", arrivalDate: "2026-02-14", arrivalTime: "10:30", departureDate: "2026-02-14", departureTime: "14:00", hotel: "Pullman Jakarta" },
+    "Singapore": { flight: "SQ100", arrivalDate: "2026-02-15", arrivalTime: "08:00", departureDate: "2026-02-15", departureTime: "11:00", hotel: "Pan Pacific Singapore" },
+    "Australia": { flight: "QF200", arrivalDate: "2026-02-16", arrivalTime: "09:00", departureDate: "2026-02-16", departureTime: "13:00", hotel: "Hilton Sydney" },
+    "Malaysia": { flight: "MH300", arrivalDate: "2026-02-17", arrivalTime: "07:30", departureDate: "2026-02-17", departureTime: "10:30", hotel: "Mandarin Oriental KL" },
+    "South Korea": { flight: "KE400", arrivalDate: "2026-02-18", arrivalTime: "22:00", departureDate: "2026-02-19", departureTime: "02:00", hotel: "Grand Hyatt Incheon" }
+  };
+
+  // Permanent crew data
+  const permanentCrew = [
+    { name: "Alice Tan", country: "Malaysia", hotel: "Mandarin Oriental KL", wakeUp: "06:30", pickup: "07:30", room: 101 },
+    { name: "Kenji Sato", country: "Japan", hotel: "Tokyo Marriott", wakeUp: "05:30", pickup: "06:30", room: 102 },
+    { name: "Maria Lopez", country: "Thailand", hotel: "Centara Grand Bangkok", wakeUp: "06:00", pickup: "07:00", room: 103 }
+  ];
+
+  function generateList(){
+    const country = document.getElementById("flight").value;
+    if(!country){ alert("Please select a country!"); return; }
+
+    const info = flightInfo[country];
+
+    // Load crew data from localStorage
+    const saved = localStorage.getItem("crewData");
+    const crewList = saved ? JSON.parse(saved) : [];
+
+    // Filter crew by country
+    const dynamicCrew = crewList.filter(c => c.country === country);
+
+    // Filter permanent crew by country
+    const permanentFiltered = permanentCrew.filter(c => c.country === country);
+
+    const allCrew = [...permanentFiltered, ...dynamicCrew];
+
+    // Header summary
+    document.getElementById("summary").style.display="block";
+    document.getElementById("summaryText").innerHTML = `
+      <strong>Flight:</strong> ${info.flight}<br>
+      <strong>Country:</strong> ${country} &nbsp; <strong>Hotel:</strong> ${info.hotel}<br>
+      <strong>Arrival Date:</strong> ${info.arrivalDate} &nbsp; <strong>ETA:</strong> ${info.arrivalTime}<br>
+      <strong>Departure Date:</strong> ${info.departureDate} &nbsp; <strong>ETD:</strong> ${info.departureTime}
+    `;
+
+    // Crew table
+    const tbody = document.getElementById("crewTable");
+    tbody.innerHTML="";
+    allCrew.forEach((c,i)=>{
+      tbody.innerHTML += `
+        <tr>
+          <td>${i+1}</td>
+          <td>${c.room}</td>
+          <td>${c.name}</td>
+          <td>${c.wakeUp}</td>
+          <td>${c.pickup}</td>
+        </tr>
+      `;
+    });
+  }
+</script>
+
+</body>
+</html>

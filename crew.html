@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CTAS - Crew Rooming List</title>
+<style>
+  body { font-family: Arial, sans-serif; background:#f5f5f5; margin:0; padding:0; color:#333; transition: background 0.3s; }
+  h1 { text-align:center; color:#d32f2f; margin-bottom:24px; }
+
+  .overlay { position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); display:none; z-index:900; }
+  .overlay.show { display:block; }
+
+  .sidebar { width:220px; background:#333; color:#fff; height:100%; position:fixed; top:0; left:-220px; transition: left 0.3s; z-index:1000; padding:20px; box-sizing:border-box; border-right: 2px solid #d32f2f; }
+  .sidebar.show { left:0; }
+  .sidebar h2 { margin-top:0; margin-bottom:20px; color:#fff; font-size:20px; }
+  .sidebar button { display:block; width:100%; padding:10px; margin-bottom:12px; background:#d32f2f; border:none; border-radius:6px; color:#fff; cursor:pointer; font-weight:bold; font-size:14px; transition: background 0.2s; }
+  .sidebar button:hover { background:#b71c1c; }
+  .sidebar .close-btn { background:#555; margin-bottom:20px; }
+
+  .toggle-btn { position:fixed; top:20px; left:20px; background:#d32f2f; color:#fff; border:none; padding:10px 14px; border-radius:6px; cursor:pointer; font-weight:bold; z-index:1100; font-size:16px; transition: background 0.2s; }
+  .toggle-btn:hover { background:#b71c1c; }
+
+  .container { max-width:1200px; margin:20px auto; background:#fff; padding:30px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.15); }
+
+  .form-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(180px,1fr)); gap:12px; margin-bottom:16px; }
+  input, select { padding:9px; border:1px solid #d32f2f; border-radius:6px; font-size:14px; }
+
+  button.action { padding:9px 16px; background:#d32f2f; color:#fff; border:none; border-radius:6px; cursor:pointer; font-weight:bold; margin-right:8px; }
+  button.action:hover { background:#b71c1c; }
+
+  table { width:100%; border-collapse:collapse; margin-top:16px; }
+  th, td { border:1px solid #ddd; padding:10px; text-align:center; font-size:14px; }
+  th { background:#d32f2f; color:#fff; }
+
+  .delete-btn { background:#555; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; }
+  .delete-btn:hover { background:#b71c1c; }
+
+  @media print { .form-grid, .sidebar, button.action, .toggle-btn, .overlay, .delete-btn { display:none; } body { background:#fff; } .container { box-shadow:none; margin:0; } }
+</style>
+</head>
+<body>
+
+<button class="toggle-btn" onclick="openSidebar()">☰</button>
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="sidebar" id="sidebar">
+  <button class="close-btn" onclick="closeSidebar()">✖ Close</button>
+  <h2>Admin Panel</h2>
+  <button onclick="logout()">Logout</button>
+</div>
+
+<div class="container">
+  <h1>CTAS - Crew Rooming List</h1>
+
+  <h2>Add Crew Assignment</h2>
+  <div class="form-grid">
+    <input id="crewName" placeholder="Crew Name">
+    <select id="country" onchange="setHotel()">
+      <option value="">Select Country</option>
+      <option value="Japan">Japan</option>
+      <option value="Thailand">Thailand</option>
+      <option value="Indonesia">Indonesia</option>
+      <option value="Singapore">Singapore</option>
+      <option value="Australia">Australia</option>
+      <option value="Malaysia">Malaysia</option>
+      <option value="South Korea">South Korea</option>
+    </select>
+    <input id="hotel" placeholder="Hotel" readonly>
+    <input id="wakeUp" type="time">
+    <input id="pickup" type="time">
+  </div>
+  <button class="action" onclick="addCrew()">Add Crew</button>
+  <a href="print.html"><button class="action">Print Page</button></a>
+
+  <h2>Crew Rooming List</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Room Number</th>
+        <th>Crew Name</th>
+        <th>Country</th>
+        <th>Hotel</th>
+        <th>Wake-Up</th>
+        <th>Pick-Up</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="crewTable"></tbody>
+  </table>
+</div>
+
+<script>
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+
+function openSidebar() { sidebar.classList.add("show"); overlay.classList.add("show"); }
+function closeSidebar() { sidebar.classList.remove("show"); overlay.classList.remove("show"); }
+
+const countryHotel = {
+  "Japan": "Tokyo Marriott",
+  "Thailand": "Centara Grand Bangkok",
+  "Indonesia": "Pullman Jakarta",
+  "Singapore": "Pan Pacific Singapore",
+  "Australia": "Hilton Sydney",
+  "Malaysia": "Mandarin Oriental KL",
+  "South Korea": "Grand Hyatt Incheon"
+};
+
+const permanentCrew = [
+  { name: "Alice Tan", country: "Malaysia", hotel: "Mandarin Oriental KL", wakeUp: "06:30", pickup: "07:30", room: 101 },
+  { name: "Kenji Sato", country: "Japan", hotel: "Tokyo Marriott", wakeUp: "05:30", pickup: "06:30", room: 102 },
+  { name: "Maria Lopez", country: "Thailand", hotel: "Centara Grand Bangkok", wakeUp: "06:00", pickup: "07:00", room: 103 }
+];
+
+let crewList = [];
+let roomCounter = 200;
+
+function setHotel() {
+  const country = document.getElementById("country").value;
+  document.getElementById("hotel").value = countryHotel[country] || "";
+}
+
+function addCrew() {
+  const name = document.getElementById("crewName").value;
+  const country = document.getElementById("country").value;
+  const hotel = document.getElementById("hotel").value;
+  const wakeUp = document.getElementById("wakeUp").value;
+  const pickup = document.getElementById("pickup").value;
+
+  if (!name || !country || !hotel || !wakeUp || !pickup) {
+    alert("Please fill in all fields!");
+    return;
+  }
+
+  roomCounter++;
+  const crew = { name, country, hotel, wakeUp, pickup, room: roomCounter };
+  crewList.push(crew);
+
+  localStorage.setItem("crewData", JSON.stringify(crewList));
+  renderTable();
+
+  document.getElementById("crewName").value = "";
+  document.getElementById("country").value = "";
+  document.getElementById("hotel").value = "";
+  document.getElementById("wakeUp").value = "";
+  document.getElementById("pickup").value = "";
+}
+
+function deleteCrew(index) {
+  if (confirm("Are you sure you want to delete this crew member?")) {
+    crewList.splice(index, 1);
+    localStorage.setItem("crewData", JSON.stringify(crewList));
+    renderTable();
+  }
+}
+
+function renderTable() {
+  const tbody = document.getElementById("crewTable");
+  tbody.innerHTML = "";
+
+  permanentCrew.forEach((c,i) => {
+    tbody.innerHTML += `<tr>
+      <td>${i+1}</td>
+      <td>${c.room}</td>
+      <td>${c.name}</td>
+      <td>${c.country}</td>
+      <td>${c.hotel}</td>
+      <td>${c.wakeUp}</td>
+      <td>${c.pickup}</td>
+      <td>-</td>
+    </tr>`;
+  });
+
+  crewList.forEach((c,i) => {
+    tbody.innerHTML += `<tr>
+      <td>${permanentCrew.length + i + 1}</td>
+      <td>${c.room}</td>
+      <td>${c.name}</td>
+      <td>${c.country}</td>
+      <td>${c.hotel}</td>
+      <td>${c.wakeUp}</td>
+      <td>${c.pickup}</td>
+      <td><button class="delete-btn" onclick="deleteCrew(${i})">Delete</button></td>
+    </tr>`;
+  });
+}
+
+window.onload = function() {
+  const saved = localStorage.getItem("crewData");
+  if (saved) {
+    crewList = JSON.parse(saved);
+    if (crewList.length > 0) roomCounter = crewList[crewList.length - 1].room;
+  }
+  renderTable();
+}
+
+function logout() {
+  localStorage.removeItem("crewData");
+  crewList = [];
+  renderTable();
+  closeSidebar();
+  // Redirect to login page
+  window.location.href = "index.html";
+}
+</script>
+
+</body>
+</html>
