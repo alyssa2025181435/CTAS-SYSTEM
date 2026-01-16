@@ -5,37 +5,157 @@
 <title>CTAS - Print Rooming List</title>
 <style>
   body { font-family: Arial, sans-serif; background:#f5f5f5; margin:0; padding:30px; color:#333; }
+
   h1 { text-align:center; color:#d32f2f; margin-bottom:24px; }
-  .container { max-width:1000px; margin:auto; background:#fff; padding:24px; border-radius:12px; box-shadow:0 6px 15px rgba(0,0,0,0.15); }
-  select, button { padding:9px; border:1px solid #d32f2f; border-radius:6px; font-size:14px; margin-bottom:12px; }
-  button { background:#d32f2f; color:#fff; cursor:pointer; font-weight:bold; }
-  button:hover { background:#b71c1c; }
-  .header-box { margin-top:20px; padding:12px; border:1px solid #ddd; border-radius:8px; }
+
+  /* Toggle button */
+  .toggle-btn {
+    position:fixed;
+    top:20px;
+    left:20px;
+    background:#d32f2f;
+    color:#fff;
+    border:none;
+    padding:10px 14px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:16px;
+    z-index:1100;
+  }
+  .toggle-btn:hover { background:#b71c1c; }
+
+  /* Overlay */
+  .overlay {
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.4);
+    display:none;
+    z-index:900;
+  }
+  .overlay.show { display:block; }
+
+  /* Sidebar */
+  .sidebar {
+    position:fixed;
+    top:0;
+    left:-220px;
+    width:220px;
+    height:100%;
+    background:#333;
+    color:#fff;
+    padding:20px;
+    box-sizing:border-box;
+    transition:left 0.3s;
+    z-index:1000;
+    border-right:2px solid #d32f2f;
+  }
+  .sidebar.show { left:0; }
+
+  .sidebar h2 { margin-top:0; margin-bottom:20px; }
+  .sidebar button {
+    width:100%;
+    padding:10px;
+    margin-bottom:12px;
+    background:#d32f2f;
+    border:none;
+    border-radius:6px;
+    color:#fff;
+    font-weight:bold;
+    cursor:pointer;
+  }
+  .sidebar button:hover { background:#b71c1c; }
+
+  .sidebar .close-btn {
+    background:#555;
+  }
+
+  .container {
+    max-width:1000px;
+    margin:auto;
+    background:#fff;
+    padding:24px;
+    border-radius:12px;
+    box-shadow:0 6px 15px rgba(0,0,0,0.15);
+  }
+
+  select, button.action {
+    padding:9px;
+    border:1px solid #d32f2f;
+    border-radius:6px;
+    font-size:14px;
+    margin-bottom:12px;
+    background:#d32f2f;
+    color:#fff;
+    cursor:pointer;
+    font-weight:bold;
+  }
+  button.action:hover { background:#b71c1c; }
+
+  .header-box {
+    margin-top:20px;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+  }
+
   .header-box h3 { margin:0 0 8px 0; color:#d32f2f; }
-  table { width:100%; border-collapse:collapse; margin-top:16px; }
-  th, td { border:1px solid #ddd; padding:10px; text-align:center; font-size:14px; }
+
+  table {
+    width:100%;
+    border-collapse:collapse;
+    margin-top:16px;
+  }
+
+  th, td {
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+    font-size:14px;
+  }
+
   th { background:#d32f2f; color:#fff; }
-  @media print { select, button { display:none; } body { background:#fff; } .container { box-shadow:none; } }
+
+  @media print {
+    .toggle-btn, .sidebar, .overlay, select, button { display:none; }
+    body { background:#fff; }
+    .container { box-shadow:none; }
+  }
 </style>
 </head>
 <body>
 
+<!-- Toggle -->
+<button class="toggle-btn" onclick="openSidebar()">☰</button>
+
+<!-- Overlay -->
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+  <button class="close-btn" onclick="closeSidebar()">✖ Close</button>
+  <h2>Admin Panel</h2>
+  <button onclick="logout()">Logout</button>
+</div>
+
 <h1>CTAS - Print Crew Rooming List</h1>
 
 <div class="container">
-  <label for="flight">Select Country</label>
+  <label>Select Country</label><br>
   <select id="flight">
     <option value="">Choose Country</option>
-    <option value="Japan">Japan (D7212)</option>
-    <option value="Thailand">Thailand (AK456)</option>
-    <option value="Indonesia">Indonesia (QZ303)</option>
-    <option value="Singapore">Singapore (SQ100)</option>
-    <option value="Australia">Australia (QF200)</option>
-    <option value="Malaysia">Malaysia (MH300)</option>
-    <option value="South Korea">South Korea (KE400)</option>
-  </select>
-  <button onclick="generateList()">Generate Rooming List</button>
-  <button onclick="window.print()">Print Page</button>
+    <option value="Japan">Japan</option>
+    <option value="Thailand">Thailand</option>
+    <option value="Indonesia">Indonesia</option>
+    <option value="Singapore">Singapore</option>
+    <option value="Australia">Australia</option>
+    <option value="Malaysia">Malaysia</option>
+    <option value="South Korea">South Korea</option>
+  </select><br>
+
+  <button class="action" onclick="generateList()">Generate Rooming List</button>
+  <button class="action" onclick="window.print()">Print Page</button>
 
   <div class="header-box" id="summary" style="display:none;">
     <h3>AirAsia X Berhad — Crew Rooming List</h3>
@@ -46,8 +166,8 @@
     <thead>
       <tr>
         <th>No</th>
-        <th>Room Number</th>
-        <th>Crew Name</th>
+        <th>Room</th>
+        <th>Name</th>
         <th>Wake-Up</th>
         <th>Pick-Up</th>
       </tr>
@@ -57,55 +177,52 @@
 </div>
 
 <script>
-  // Flight info (arrival/departure times + hotels)
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("overlay");
+
+  function openSidebar() {
+    sidebar.classList.add("show");
+    overlay.classList.add("show");
+  }
+  function closeSidebar() {
+    sidebar.classList.remove("show");
+    overlay.classList.remove("show");
+  }
+
   const flightInfo = {
-    "Japan": { flight: "D7212", arrivalDate: "2025-12-12", arrivalTime: "23:45", departureDate: "2025-12-14", departureTime: "01:00", hotel: "Tokyo Marriott" },
-    "Thailand": { flight: "AK456", arrivalDate: "2026-02-13", arrivalTime: "12:00", departureDate: "2026-02-13", departureTime: "09:30", hotel: "Centara Grand Bangkok" },
-    "Indonesia": { flight: "QZ303", arrivalDate: "2026-02-14", arrivalTime: "10:30", departureDate: "2026-02-14", departureTime: "14:00", hotel: "Pullman Jakarta" },
-    "Singapore": { flight: "SQ100", arrivalDate: "2026-02-15", arrivalTime: "08:00", departureDate: "2026-02-15", departureTime: "11:00", hotel: "Pan Pacific Singapore" },
-    "Australia": { flight: "QF200", arrivalDate: "2026-02-16", arrivalTime: "09:00", departureDate: "2026-02-16", departureTime: "13:00", hotel: "Hilton Sydney" },
-    "Malaysia": { flight: "MH300", arrivalDate: "2026-02-17", arrivalTime: "07:30", departureDate: "2026-02-17", departureTime: "10:30", hotel: "Mandarin Oriental KL" },
-    "South Korea": { flight: "KE400", arrivalDate: "2026-02-18", arrivalTime: "22:00", departureDate: "2026-02-19", departureTime: "02:00", hotel: "Grand Hyatt Incheon" }
+    "Japan": { flight:"D7212", hotel:"Tokyo Marriott" },
+    "Thailand": { flight:"AK456", hotel:"Centara Grand Bangkok" },
+    "Indonesia": { flight:"QZ303", hotel:"Pullman Jakarta" },
+    "Singapore": { flight:"SQ100", hotel:"Pan Pacific Singapore" },
+    "Australia": { flight:"QF200", hotel:"Hilton Sydney" },
+    "Malaysia": { flight:"MH300", hotel:"Mandarin Oriental KL" },
+    "South Korea": { flight:"KE400", hotel:"Grand Hyatt Incheon" }
   };
 
-  // Permanent crew data
   const permanentCrew = [
-    { name: "Alice Tan", country: "Malaysia", hotel: "Mandarin Oriental KL", wakeUp: "06:30", pickup: "07:30", room: 101 },
-    { name: "Kenji Sato", country: "Japan", hotel: "Tokyo Marriott", wakeUp: "05:30", pickup: "06:30", room: 102 },
-    { name: "Maria Lopez", country: "Thailand", hotel: "Centara Grand Bangkok", wakeUp: "06:00", pickup: "07:00", room: 103 }
+    { name:"Alice Tan", country:"Malaysia", room:101, wakeUp:"06:30", pickup:"07:30" },
+    { name:"Kenji Sato", country:"Japan", room:102, wakeUp:"05:30", pickup:"06:30" },
+    { name:"Maria Lopez", country:"Thailand", room:103, wakeUp:"06:00", pickup:"07:00" }
   ];
 
-  function generateList(){
+  function generateList() {
     const country = document.getElementById("flight").value;
-    if(!country){ alert("Please select a country!"); return; }
+    if (!country) { alert("Select a country"); return; }
 
-    const info = flightInfo[country];
-
-    // Load crew data from localStorage
     const saved = localStorage.getItem("crewData");
-    const crewList = saved ? JSON.parse(saved) : [];
+    const dynamicCrew = saved ? JSON.parse(saved).filter(c => c.country === country) : [];
+    const fixedCrew = permanentCrew.filter(c => c.country === country);
+    const allCrew = [...fixedCrew, ...dynamicCrew];
 
-    // Filter crew by country
-    const dynamicCrew = crewList.filter(c => c.country === country);
+    document.getElementById("summary").style.display = "block";
+    document.getElementById("summaryText").innerHTML =
+      `<strong>Flight:</strong> ${flightInfo[country].flight}<br>
+       <strong>Country:</strong> ${country}<br>
+       <strong>Hotel:</strong> ${flightInfo[country].hotel}`;
 
-    // Filter permanent crew by country
-    const permanentFiltered = permanentCrew.filter(c => c.country === country);
-
-    const allCrew = [...permanentFiltered, ...dynamicCrew];
-
-    // Header summary
-    document.getElementById("summary").style.display="block";
-    document.getElementById("summaryText").innerHTML = `
-      <strong>Flight:</strong> ${info.flight}<br>
-      <strong>Country:</strong> ${country} &nbsp; <strong>Hotel:</strong> ${info.hotel}<br>
-      <strong>Arrival Date:</strong> ${info.arrivalDate} &nbsp; <strong>ETA:</strong> ${info.arrivalTime}<br>
-      <strong>Departure Date:</strong> ${info.departureDate} &nbsp; <strong>ETD:</strong> ${info.departureTime}
-    `;
-
-    // Crew table
     const tbody = document.getElementById("crewTable");
-    tbody.innerHTML="";
-    allCrew.forEach((c,i)=>{
+    tbody.innerHTML = "";
+    allCrew.forEach((c,i) => {
       tbody.innerHTML += `
         <tr>
           <td>${i+1}</td>
@@ -113,9 +230,13 @@
           <td>${c.name}</td>
           <td>${c.wakeUp}</td>
           <td>${c.pickup}</td>
-        </tr>
-      `;
+        </tr>`;
     });
+  }
+
+  function logout() {
+    localStorage.removeItem("isLoggedIn");
+    window.location.href = "login.html";
   }
 </script>
 
